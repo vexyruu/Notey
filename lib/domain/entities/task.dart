@@ -11,6 +11,7 @@ class Task {
   final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool hasTime;
   final bool isSynced;
   final bool isDeleted;
 
@@ -25,6 +26,7 @@ class Task {
     required this.sortOrder,
     required this.createdAt,
     required this.updatedAt,
+    this.hasTime = false,
     required this.isSynced,
     required this.isDeleted,
   });
@@ -40,6 +42,7 @@ class Task {
     int? sortOrder,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? hasTime,
     bool? isSynced,
     bool? isDeleted,
     bool clearDescription = false,
@@ -57,6 +60,7 @@ class Task {
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      hasTime: clearDueDate ? false : (hasTime ?? this.hasTime),
       isSynced: isSynced ?? this.isSynced,
       isDeleted: isDeleted ?? this.isDeleted,
     );

@@ -12,6 +12,7 @@ class TaskModel extends Task {
     required super.sortOrder,
     required super.createdAt,
     required super.updatedAt,
+    super.hasTime = false,
     required super.isSynced,
     required super.isDeleted,
   });
@@ -28,10 +29,9 @@ class TaskModel extends Task {
           : null,
       category: map['category'] as String?,
       sortOrder: map['sortOrder'] as int,
-      createdAt:
-          DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
-      updatedAt:
-          DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] as int),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] as int),
+      hasTime: (map['hasTime'] as int? ?? 0) == 1,
       isSynced: (map['isSynced'] as int) == 1,
       isDeleted: (map['isDeleted'] as int) == 1,
     );
@@ -49,6 +49,7 @@ class TaskModel extends Task {
       'sortOrder': sortOrder,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
+      'hasTime': hasTime ? 1 : 0,
       'isSynced': isSynced ? 1 : 0,
       'isDeleted': isDeleted ? 1 : 0,
     };
@@ -66,6 +67,7 @@ class TaskModel extends Task {
       sortOrder: task.sortOrder,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
+      hasTime: task.hasTime,
       isSynced: task.isSynced,
       isDeleted: task.isDeleted,
     );

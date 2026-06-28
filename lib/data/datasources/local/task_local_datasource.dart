@@ -23,6 +23,7 @@ class TaskLocalDatasource {
       path,
       version: AppConstants.dbVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -39,6 +40,7 @@ class TaskLocalDatasource {
         sortOrder    INTEGER NOT NULL DEFAULT 0,
         createdAt    INTEGER NOT NULL,
         updatedAt    INTEGER NOT NULL,
+        hasTime      INTEGER NOT NULL DEFAULT 0,
         isSynced     INTEGER NOT NULL DEFAULT 0,
         isDeleted    INTEGER NOT NULL DEFAULT 0
       )
@@ -49,6 +51,14 @@ class TaskLocalDatasource {
         'CREATE INDEX idx_tasks_synced ON ${AppConstants.tasksTable}(isSynced)');
     await db.execute(
         'CREATE INDEX idx_tasks_due ON ${AppConstants.tasksTable}(dueDate)');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE ${AppConstants.tasksTable} ADD COLUMN hasTime INTEGER NOT NULL DEFAULT 0',
+      );
+    }
   }
 
   Future<void> _notifyListeners() async {
