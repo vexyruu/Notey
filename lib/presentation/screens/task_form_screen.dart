@@ -6,19 +6,6 @@ import '../../app.dart';
 import '../../domain/entities/task.dart';
 import '../viewmodels/task_viewmodel.dart';
 
-const _kEnabledBorder = UnderlineInputBorder(
-  borderSide: BorderSide(color: Color(0x1AFFFFFF)),
-);
-const _kFocusedBorder = UnderlineInputBorder(
-  borderSide: BorderSide(color: kElectricIndigo),
-);
-const _kLabelStyle = TextStyle(
-  color: kSlateGray,
-  fontSize: 12,
-  fontWeight: FontWeight.w500,
-  letterSpacing: 0.1 * 12,
-);
-
 class TaskFormScreen extends ConsumerStatefulWidget {
   final Task? task;
   final DateTime? initialDate;
@@ -75,23 +62,19 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: kElectricIndigo,
-            surface: kSurface,
-          ),
-        ),
+        data: Theme.of(context)
+            .copyWith(colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: kElectricIndigo,
+                )),
         child: child!,
       ),
     );
     if (picked != null) {
       setState(() {
-        _dueDate = picked;
-        if (_hasTime && _dueTime != null) {
-          _dueDate = DateTime(
-              picked.year, picked.month, picked.day,
-              _dueTime!.hour, _dueTime!.minute);
-        }
+        _dueDate = _hasTime && _dueTime != null
+            ? DateTime(picked.year, picked.month, picked.day, _dueTime!.hour,
+                _dueTime!.minute)
+            : picked;
       });
     }
   }
@@ -101,13 +84,10 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       context: context,
       initialTime: _dueTime ?? TimeOfDay.now(),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: kElectricIndigo,
-            surface: kSurface,
-            onSurface: kOnBackground,
-          ),
-        ),
+        data: Theme.of(context)
+            .copyWith(colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: kElectricIndigo,
+                )),
         child: child!,
       ),
     );
@@ -116,8 +96,8 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         _dueTime = picked;
         _hasTime = true;
         final base = _dueDate ?? DateTime.now();
-        _dueDate = DateTime(
-            base.year, base.month, base.day, picked.hour, picked.minute);
+        _dueDate =
+            DateTime(base.year, base.month, base.day, picked.hour, picked.minute);
       });
     }
   }
@@ -127,8 +107,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       _dueTime = null;
       _hasTime = false;
       if (_dueDate != null) {
-        _dueDate = DateTime(
-            _dueDate!.year, _dueDate!.month, _dueDate!.day);
+        _dueDate = DateTime(_dueDate!.year, _dueDate!.month, _dueDate!.day);
       }
     });
   }
@@ -184,19 +163,31 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     final m = _dueTime!.minute;
     final period = h >= 12 ? 'PM' : 'AM';
     final hour = h == 0 ? 12 : (h > 12 ? h - 12 : h);
-    final min = m.toString().padLeft(2, '0');
-    return '$hour:$min $period';
+    return '$hour:${m.toString().padLeft(2, '0')} $period';
   }
 
   @override
   Widget build(BuildContext context) {
+    final subtleBorder = UnderlineInputBorder(
+      borderSide: BorderSide(color: context.subtleBorder),
+    );
+    const focusedBorder = UnderlineInputBorder(
+      borderSide: BorderSide(color: kElectricIndigo),
+    );
+    final labelStyle = TextStyle(
+      color: kSlateGray,
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.1 * 12,
+    );
+
     return Scaffold(
-      backgroundColor: kBackground,
+      backgroundColor: context.bg,
       appBar: AppBar(
-        backgroundColor: kBackground,
+        backgroundColor: context.bg,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: kOnBackground),
+          icon: Icon(Icons.close, color: context.onBg),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -205,14 +196,14 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             fontSize: 20,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.02 * 20,
-            color: kOnBackground,
+            color: context.onBg,
           ),
         ),
         centerTitle: true,
         elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: const Color(0x1AFFFFFF)),
+          child: Divider(height: 1, color: context.hairline),
         ),
       ),
       body: Form(
@@ -226,7 +217,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   fontSize: 40,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.04 * 40,
-                  color: kOnBackground,
+                  color: context.onBg,
                   height: 1.2,
                 ),
                 children: _isEdit
@@ -263,25 +254,25 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             TextFormField(
               controller: _titleCtrl,
               style: GoogleFonts.dmSans(
-                color: kOnBackground,
+                color: context.onBg,
                 fontSize: 24,
                 fontWeight: FontWeight.w500,
               ),
               decoration: InputDecoration(
                 hintText: 'What needs to be done?',
                 hintStyle: GoogleFonts.dmSans(
-                  color: const Color(0xFF34343D),
+                  color: context.hintText,
                   fontSize: 24,
                   fontWeight: FontWeight.w500,
                 ),
-                border: _kEnabledBorder,
-                enabledBorder: _kEnabledBorder,
-                focusedBorder: _kFocusedBorder,
-                errorBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: kError),
+                border: subtleBorder,
+                enabledBorder: subtleBorder,
+                focusedBorder: focusedBorder,
+                errorBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: context.errorColor),
                 ),
-                focusedErrorBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: kError),
+                focusedErrorBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: context.errorColor),
                 ),
                 filled: false,
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -294,16 +285,16 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             const SizedBox(height: 32),
             TextFormField(
               controller: _descCtrl,
-              style: GoogleFonts.inter(color: kOnBackground, fontSize: 16),
+              style: GoogleFonts.inter(color: context.onBg, fontSize: 16),
               decoration: InputDecoration(
                 hintText: 'Add details or notes...',
                 hintStyle: GoogleFonts.inter(
-                  color: const Color(0xFF34343D),
+                  color: context.hintText,
                   fontSize: 16,
                 ),
-                border: _kEnabledBorder,
-                enabledBorder: _kEnabledBorder,
-                focusedBorder: _kFocusedBorder,
+                border: subtleBorder,
+                enabledBorder: subtleBorder,
+                focusedBorder: focusedBorder,
                 filled: false,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -312,7 +303,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               minLines: 2,
             ),
             const SizedBox(height: 40),
-            const Text('PRIORITY', style: _kLabelStyle),
+            Text('PRIORITY', style: labelStyle),
             const SizedBox(height: 10),
             Row(
               children: Priority.values.map((p) {
@@ -334,8 +325,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                           style: GoogleFonts.dmSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w500,
-                            color:
-                                isSelected ? kOnBackground : kSlateGray,
+                            color: isSelected ? context.onBg : kSlateGray,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -362,13 +352,13 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('DUE DATE', style: _kLabelStyle),
+                      Text('DUE DATE', style: labelStyle),
                       const SizedBox(height: 10),
                       GestureDetector(
                         onTap: _pickDate,
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_today_outlined,
+                            Icon(Icons.calendar_today_outlined,
                                 color: kSlateGray, size: 18),
                             const SizedBox(width: 8),
                             Text(
@@ -377,7 +367,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                                 fontSize: 18,
                                 fontWeight: FontWeight.w500,
                                 color: _dueDate != null
-                                    ? kOnBackground
+                                    ? context.onBg
                                     : kSlateGray,
                               ),
                             ),
@@ -389,7 +379,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                                   _dueTime = null;
                                   _hasTime = false;
                                 }),
-                                child: const Icon(Icons.close,
+                                child: Icon(Icons.close,
                                     color: kSlateGray, size: 16),
                               ),
                             ],
@@ -404,13 +394,13 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('TIME', style: _kLabelStyle),
+                      Text('TIME', style: labelStyle),
                       const SizedBox(height: 10),
                       GestureDetector(
                         onTap: _pickTime,
                         child: Row(
                           children: [
-                            const Icon(Icons.schedule_outlined,
+                            Icon(Icons.schedule_outlined,
                                 color: kSlateGray, size: 18),
                             const SizedBox(width: 8),
                             Text(
@@ -419,14 +409,14 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                                 fontSize: 18,
                                 fontWeight: FontWeight.w500,
                                 color:
-                                    _hasTime ? kOnBackground : kSlateGray,
+                                    _hasTime ? context.onBg : kSlateGray,
                               ),
                             ),
                             if (_hasTime) ...[
                               const SizedBox(width: 6),
                               GestureDetector(
                                 onTap: _clearTime,
-                                child: const Icon(Icons.close,
+                                child: Icon(Icons.close,
                                     color: kSlateGray, size: 16),
                               ),
                             ],
@@ -439,20 +429,20 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               ],
             ),
             const SizedBox(height: 40),
-            const Text('CATEGORY', style: _kLabelStyle),
+            Text('CATEGORY', style: labelStyle),
             const SizedBox(height: 10),
             TextFormField(
               controller: _categoryCtrl,
-              style: GoogleFonts.inter(color: kOnBackground, fontSize: 16),
+              style: GoogleFonts.inter(color: context.onBg, fontSize: 16),
               decoration: InputDecoration(
                 hintText: 'Work, Personal, Health...',
                 hintStyle: GoogleFonts.inter(
-                  color: const Color(0xFF34343D),
+                  color: context.hintText,
                   fontSize: 16,
                 ),
-                border: _kEnabledBorder,
-                enabledBorder: _kEnabledBorder,
-                focusedBorder: _kFocusedBorder,
+                border: subtleBorder,
+                enabledBorder: subtleBorder,
+                focusedBorder: focusedBorder,
                 filled: false,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),

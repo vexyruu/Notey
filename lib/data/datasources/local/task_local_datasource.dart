@@ -51,6 +51,7 @@ class TaskLocalDatasource {
         'CREATE INDEX idx_tasks_synced ON ${AppConstants.tasksTable}(isSynced)');
     await db.execute(
         'CREATE INDEX idx_tasks_due ON ${AppConstants.tasksTable}(dueDate)');
+    await _createNotesTable(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -59,6 +60,22 @@ class TaskLocalDatasource {
         'ALTER TABLE ${AppConstants.tasksTable} ADD COLUMN hasTime INTEGER NOT NULL DEFAULT 0',
       );
     }
+    if (oldVersion < 3) {
+      await _createNotesTable(db);
+    }
+  }
+
+  Future<void> _createNotesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${AppConstants.notesTable} (
+        id        TEXT PRIMARY KEY,
+        title     TEXT NOT NULL DEFAULT '',
+        content   TEXT NOT NULL DEFAULT '',
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL,
+        isDeleted INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
   }
 
   Future<void> _notifyListeners() async {

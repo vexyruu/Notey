@@ -12,102 +12,151 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return Scaffold(
-      backgroundColor: kBackground,
-      appBar: AppBar(
-        backgroundColor: kBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kOnBackground),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Settings',
-          style: GoogleFonts.dmSans(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: kOnBackground,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: kHairline),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        children: [
-          _SectionHeader(label: 'APPEARANCE'),
-          _SettingsRow(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Theme',
-                  style: GoogleFonts.dmSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: kOnBackground),
+      backgroundColor: context.bg,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 14, 24, 100),
+          children: [
+            const SizedBox(height: 28),
+            RichText(
+              text: TextSpan(
+                style: GoogleFonts.dmSans(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.04 * 40,
+                  color: context.onBg,
+                  height: 1.2,
                 ),
-                const SizedBox(height: 12),
-                _ThemeSegmentedControl(
-                  current: themeMode,
-                  onChanged: (mode) =>
-                      ref.read(themeModeProvider.notifier).setTheme(mode),
-                ),
-              ],
-            ),
-          ),
-          const _Hairline(),
-          _SectionHeader(label: 'ACCOUNT'),
-          _SettingsRow(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Sign in with Google',
-                        style: GoogleFonts.dmSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: kOnBackground),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Sync tasks across devices',
-                        style: GoogleFonts.inter(
-                            fontSize: 13, color: kSlateGray),
-                      ),
-                    ],
+                children: [
+                  const TextSpan(text: 'Your '),
+                  TextSpan(
+                    text: 'Profile',
+                    style: GoogleFonts.playfairDisplay(
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w600,
+                      color: context.accentText,
+                      fontSize: 40,
+                      height: 1.2,
+                    ),
                   ),
-                ),
-                const Icon(Icons.chevron_right, color: kSlateGray, size: 20),
-              ],
+                ],
+              ),
             ),
-          ),
-          const _Hairline(),
-          _SectionHeader(label: 'ABOUT'),
-          _SettingsRow(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Version',
+            const SizedBox(height: 40),
+            Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: kElectricIndigo.withValues(alpha: 0.12),
+                      border: Border.all(
+                          color: kElectricIndigo.withValues(alpha: 0.25),
+                          width: 1.5),
+                    ),
+                    child: const Icon(Icons.person_outline,
+                        size: 38, color: kElectricIndigo),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Your Workspace',
                     style: GoogleFonts.dmSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: kOnBackground),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: context.onBg,
+                    ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Personal',
+                    style: GoogleFonts.inter(
+                        fontSize: 13, color: kSlateGray),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+            _SectionHeader(label: 'APPEARANCE'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: context.surfaceContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Theme',
+                    style: GoogleFonts.dmSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: context.onBg),
+                  ),
+                  const SizedBox(height: 12),
+                  _ThemeSegmentedControl(
+                    current: themeMode,
+                    onChanged: (mode) =>
+                        ref.read(themeModeProvider.notifier).setTheme(mode),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            _SectionHeader(label: 'ACCOUNT'),
+            const SizedBox(height: 8),
+            _SettingsCard(
+              children: [
+                _SettingsRow(
+                  icon: Icons.login_outlined,
+                  label: 'Sign in with Google',
+                  subtitle: 'Sync tasks across devices',
+                  trailing: Icon(Icons.chevron_right,
+                      color: kSlateGray, size: 20),
                 ),
-                Text('1.0.0',
-                    style:
-                        GoogleFonts.inter(fontSize: 14, color: kSlateGray)),
               ],
             ),
-          ),
-          const _Hairline(),
-        ],
+            const SizedBox(height: 24),
+            _SectionHeader(label: 'DATA'),
+            const SizedBox(height: 8),
+            _SettingsCard(
+              children: [
+                _SettingsRow(
+                  icon: Icons.backup_outlined,
+                  label: 'Export data',
+                  subtitle: 'Download all tasks and notes',
+                  trailing: Icon(Icons.chevron_right,
+                      color: kSlateGray, size: 20),
+                ),
+                Divider(height: 1, color: context.hairline),
+                _SettingsRow(
+                  icon: Icons.restore_outlined,
+                  label: 'Import data',
+                  subtitle: 'Restore from a backup file',
+                  trailing: Icon(Icons.chevron_right,
+                      color: kSlateGray, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _SectionHeader(label: 'ABOUT'),
+            const SizedBox(height: 8),
+            _SettingsCard(
+              children: [
+                _SettingsRow(
+                  icon: Icons.info_outline,
+                  label: 'Version',
+                  trailing: Text('1.0.0',
+                      style: GoogleFonts.inter(
+                          fontSize: 13, color: kSlateGray)),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -119,39 +168,90 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-      child: Text(
-        label,
-        style: GoogleFonts.inter(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.08 * 11,
-          color: kSlateGray,
-        ),
+    return Text(
+      label,
+      style: GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.08 * 11,
+        color: kSlateGray,
       ),
     );
   }
 }
 
-class _SettingsRow extends StatelessWidget {
-  final Widget child;
-  const _SettingsRow({required this.child});
+class _SettingsCard extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsCard({required this.children});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-      child: child,
+    return Container(
+      decoration: BoxDecoration(
+        color: context.surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(children: children),
     );
   }
 }
 
-class _Hairline extends StatelessWidget {
-  const _Hairline();
+class _SettingsRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final Widget? trailing;
+
+  const _SettingsRow({
+    required this.icon,
+    required this.label,
+    this.subtitle,
+    this.trailing,
+  });
+
   @override
-  Widget build(BuildContext context) =>
-      const Divider(height: 1, color: kHairline, indent: 24, endIndent: 24);
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: kElectricIndigo.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: kElectricIndigo),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: context.onBg),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    style: GoogleFonts.inter(
+                        fontSize: 12, color: kSlateGray),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    );
+  }
 }
 
 class _ThemeSegmentedControl extends StatelessWidget {
@@ -183,9 +283,9 @@ class _ThemeSegmentedControl extends StatelessWidget {
                     ? kElectricIndigo.withValues(alpha: 0.15)
                     : Colors.transparent,
                 border: Border.all(
-                  color: isActive ? kElectricIndigo : kOutlineVariant,
+                  color: isActive ? kElectricIndigo : context.outline,
                 ),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 label,

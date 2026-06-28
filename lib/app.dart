@@ -2,19 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
-import 'presentation/screens/task_list_screen.dart';
+import 'presentation/widgets/main_shell.dart';
 
-const kBackground = Color(0xFF0A0A0A);
-const kSurface = Color(0xFF13131B);
-const kSurfaceContainer = Color(0xFF1F1F27);
-const kSurfaceContainerHigh = Color(0xFF292932);
-const kOnBackground = Color(0xFFE4E1ED);
-const kPrimary = Color(0xFFC0C1FF);
 const kElectricIndigo = Color(0xFF6366F1);
+const kPrimary = Color(0xFFC0C1FF);
 const kSlateGray = Color(0xFF8E8E93);
-const kOutlineVariant = Color(0xFF464554);
-const kHairline = Color(0xFF262626);
-const kError = Color(0xFFFFB4AB);
+
+const kPriorityHigh = Color(0xFFFF6B6B);
+const kPriorityMedium = Color(0xFFFFB86C);
+const kPriorityLow = Color(0xFF4EDEA3);
+
+extension AppColors on BuildContext {
+  bool get isDark => Theme.of(this).brightness == Brightness.dark;
+  Color get bg => Theme.of(this).scaffoldBackgroundColor;
+  Color get onBg => Theme.of(this).colorScheme.onSurface;
+  Color get surface => Theme.of(this).colorScheme.surface;
+  Color get surfaceContainer => Theme.of(this).colorScheme.surfaceContainer;
+  Color get surfaceContainerHigh => Theme.of(this).colorScheme.surfaceContainerHigh;
+  Color get hairline => Theme.of(this).dividerColor;
+  Color get outline => Theme.of(this).colorScheme.outlineVariant;
+  Color get subtleBorder => Theme.of(this).colorScheme.onSurface.withValues(alpha: 0.1);
+  Color get accentText => isDark ? kPrimary : kElectricIndigo;
+  Color get hintText => Theme.of(this).colorScheme.onSurface.withValues(alpha: 0.22);
+  Color get errorColor => Theme.of(this).colorScheme.error;
+}
 
 class NoteyApp extends ConsumerWidget {
   const NoteyApp({super.key});
@@ -28,7 +39,7 @@ class NoteyApp extends ConsumerWidget {
       themeMode: themeMode,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      home: const TaskListScreen(),
+      home: const MainShell(),
     );
   }
 }

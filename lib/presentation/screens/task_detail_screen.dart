@@ -20,9 +20,9 @@ class TaskDetailScreen extends ConsumerWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) Navigator.of(context).pop();
       });
-      return const Scaffold(
-        backgroundColor: kSurface,
-        body: Center(
+      return Scaffold(
+        backgroundColor: context.bg,
+        body: const Center(
           child: CircularProgressIndicator(color: kElectricIndigo),
         ),
       );
@@ -37,9 +37,9 @@ class _TaskDetailView extends ConsumerWidget {
   const _TaskDetailView({required this.task});
 
   Color _priorityColor(Priority p) => switch (p) {
-        Priority.high => const Color(0xFFFFB4AB),   // error token
-        Priority.medium => const Color(0xFFFFB86C),
-        Priority.low => const Color(0xFF4EDEA3),     // secondary
+        Priority.high => kPriorityHigh,
+        Priority.medium => kPriorityMedium,
+        Priority.low => kPriorityLow,
       };
 
   String _priorityLabel(Priority p) => switch (p) {
@@ -48,60 +48,71 @@ class _TaskDetailView extends ConsumerWidget {
         Priority.low => 'Low',
       };
 
+  bool get _isOverdue {
+    if (task.dueDate == null || task.isCompleted) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(
+        task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
+    return due.isBefore(today);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vm = ref.read(taskViewModelProvider.notifier);
 
     return Scaffold(
-      backgroundColor: kSurface,
+      backgroundColor: context.bg,
       appBar: AppBar(
-        backgroundColor: kSurface,
-        automaticallyImplyLeading: false,
+        backgroundColor: context.bg,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kOnBackground),
+          icon: Icon(Icons.arrow_back, color: context.onBg),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'Notey',
-          style: GoogleFonts.dmSans(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.02 * 20,
-            color: kOnBackground,
-          ),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: const Color(0x1AFFFFFF)),
-        ),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_horiz, color: kOnBackground),
-            color: kSurfaceContainerHigh,
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    const Icon(Icons.delete_outline,
-                        color: Color(0xFFFFB4AB), size: 18),
-                    const SizedBox(width: 10),
-                    Text('Delete',
-                        style: GoogleFonts.inter(
-                            color: const Color(0xFFFFB4AB))),
+          IconButton(
+            icon: Icon(Icons.edit_outlined, color: context.onBg, size: 20),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (_) => TaskFormScreen(task: task)),
+            ),
+          ),
+          IconButton(
+            icon:
+                Icon(Icons.delete_outline, color: context.errorColor, size: 20),
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: context.surfaceContainerHigh,
+                  title: Text('Delete task?',
+                      style: GoogleFonts.dmSans(color: context.onBg)),
+                  content: Text('This cannot be undone.',
+                      style: GoogleFonts.inter(
+                          color: kSlateGray, fontSize: 14)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: Text('Cancel',
+                          style: GoogleFonts.inter(color: kSlateGray)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: Text('Delete',
+                          style:
+                              GoogleFonts.inter(color: context.errorColor)),
+                    ),
                   ],
                 ),
-              ),
-            ],
-            onSelected: (v) async {
-              if (v == 'delete') {
+              );
+              if (confirmed == true) {
                 await vm.deleteTask(task.id);
                 if (context.mounted) Navigator.of(context).pop();
               }
             },
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: SingleChildScrollView(
@@ -109,28 +120,63 @@ class _TaskDetailView extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            RichText(
+              text: TextSpan(
+                style: GoogleFonts.dmSans(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.04 * 40,
+                  color: context.onBg,
+                  height: 1.2,
+                ),
+                children: [
+                  const TextSpan(text: 'Your '),
+                  TextSpan(
+                    text: 'Task',
+                    style: GoogleFonts.playfairDisplay(
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w600,
+                      color: context.accentText,
+                      fontSize: 40,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Divider(color: context.hairline),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Container(
-                  width: 7,
-                  height: 7,
+                  width: 6,
+                  height: 6,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: task.isCompleted
-                        ? const Color(0xFF4EDEA3)
-                        : kElectricIndigo,
+                        ? kPriorityLow
+                        : _isOverdue
+                            ? kPriorityHigh
+                            : kElectricIndigo,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  task.isCompleted ? 'COMPLETED' : 'IN PROGRESS',
+                  task.isCompleted
+                      ? 'COMPLETED'
+                      : _isOverdue
+                          ? 'OVERDUE'
+                          : 'IN PROGRESS',
                   style: GoogleFonts.inter(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.1 * 12,
+                    letterSpacing: 0.1 * 11,
                     color: task.isCompleted
-                        ? const Color(0xFF4EDEA3)
-                        : kElectricIndigo,
+                        ? kPriorityLow
+                        : _isOverdue
+                            ? kPriorityHigh
+                            : kElectricIndigo,
                   ),
                 ),
               ],
@@ -139,99 +185,110 @@ class _TaskDetailView extends ConsumerWidget {
             Text(
               task.title,
               style: GoogleFonts.dmSans(
-                fontSize: 26,
+                fontSize: 28,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.03 * 26,
-                color: kOnBackground,
+                letterSpacing: -0.03 * 28,
+                color: context.onBg,
                 height: 1.25,
+                decoration:
+                    task.isCompleted ? TextDecoration.lineThrough : null,
+                decorationColor: context.onBg.withValues(alpha: 0.4),
               ),
             ),
-            const SizedBox(height: 32),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _InfoCell(
-                    label: 'PRIORITY',
-                    child: Row(
-                      children: [
-                        Icon(Icons.flag_rounded,
-                            size: 14,
-                            color: _priorityColor(task.priority)),
-                        const SizedBox(width: 6),
-                        Text(
-                          _priorityLabel(task.priority),
-                          style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: _priorityColor(task.priority),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (task.category != null)
-                  Expanded(
-                    child: _InfoCell(
-                      label: 'CATEGORY',
-                      child: Text(
-                        task.category!,
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: kOnBackground,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            if (task.dueDate != null) ...[
-              const SizedBox(height: 20),
-              Row(
+            const SizedBox(height: 28),
+            Container(
+              decoration: BoxDecoration(
+                color: context.surfaceContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: _InfoCell(
-                      label: 'DUE DATE',
-                      child: Text(
-                        DateFormat('MMM d, yyyy').format(task.dueDate!),
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: kOnBackground,
-                        ),
-                      ),
+                  _InfoRow(
+                    icon: Icons.flag_rounded,
+                    iconColor: _priorityColor(task.priority),
+                    label: 'Priority',
+                    value: _priorityLabel(task.priority),
+                    valueColor: _priorityColor(task.priority),
+                  ),
+                  if (task.category != null) ...[
+                    Divider(
+                        height: 1,
+                        indent: 16,
+                        endIndent: 16,
+                        color: context.hairline),
+                    _InfoRow(
+                      icon: Icons.label_outline,
+                      iconColor: kElectricIndigo,
+                      label: 'Category',
+                      value: task.category!,
                     ),
-                  ),
-                  Expanded(
-                    child: task.hasTime
-                        ? _InfoCell(
-                            label: 'TIME',
-                            child: Text(
-                              DateFormat('h:mm a').format(task.dueDate!),
-                              style: GoogleFonts.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                color: kOnBackground,
-                              ),
-                            ),
-                          )
-                        : const SizedBox(),
-                  ),
+                  ],
+                  if (task.dueDate != null) ...[
+                    Divider(
+                        height: 1,
+                        indent: 16,
+                        endIndent: 16,
+                        color: context.hairline),
+                    _InfoRow(
+                      icon: Icons.calendar_today_outlined,
+                      iconColor: _isOverdue && !task.isCompleted
+                          ? kPriorityHigh
+                          : kElectricIndigo,
+                      label: 'Due date',
+                      value: DateFormat('EEEE, MMM d yyyy')
+                          .format(task.dueDate!),
+                      valueColor: _isOverdue && !task.isCompleted
+                          ? kPriorityHigh
+                          : null,
+                    ),
+                    if (task.hasTime) ...[
+                      Divider(
+                          height: 1,
+                          indent: 16,
+                          endIndent: 16,
+                          color: context.hairline),
+                      _InfoRow(
+                        icon: Icons.access_time_rounded,
+                        iconColor: kElectricIndigo,
+                        label: 'Time',
+                        value: DateFormat('h:mm a').format(task.dueDate!),
+                      ),
+                    ],
+                  ],
                 ],
               ),
-            ],
+            ),
             if (task.description != null) ...[
-              const SizedBox(height: 28),
-              Divider(color: Colors.white.withValues(alpha: 0.06)),
               const SizedBox(height: 20),
-              Text(
-                task.description!,
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  color: const Color(0xFFC7C4D7),
-                  height: 1.65,
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: context.surfaceContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Notes',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.08 * 11,
+                        color: kSlateGray,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      task.description!,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        color: context.onBg,
+                        height: 1.65,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -240,65 +297,32 @@ class _TaskDetailView extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          decoration: BoxDecoration(
-            color: kSurface,
-            border: Border(
-              top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: () => vm.toggleComplete(task),
+              icon: Icon(
+                task.isCompleted
+                    ? Icons.refresh_rounded
+                    : Icons.check_rounded,
+                size: 18,
+              ),
+              label: Text(
+                task.isCompleted ? 'Mark as Undone' : 'Mark as Done',
+                style: GoogleFonts.dmSans(
+                    fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor:
+                    task.isCompleted ? context.surfaceContainerHigh : kElectricIndigo,
+                foregroundColor:
+                    task.isCompleted ? context.onBg : Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              TextButton.icon(
-                onPressed: () async {
-                  await vm.deleteTask(task.id);
-                  if (context.mounted) Navigator.of(context).pop();
-                },
-                icon: const Icon(Icons.delete_outline,
-                    color: Color(0xFFFFB4AB), size: 17),
-                label: Text(
-                  'Delete Task',
-                  style: GoogleFonts.inter(
-                      color: const Color(0xFFFFB4AB), fontSize: 13),
-                ),
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () => vm.toggleComplete(task),
-                style: TextButton.styleFrom(
-                  foregroundColor: kOnBackground,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  task.isCompleted ? 'Mark Undone' : 'Mark as Done',
-                  style: GoogleFonts.inter(fontSize: 13),
-                ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => TaskFormScreen(task: task)),
-                ),
-                icon: const Icon(Icons.edit_outlined, size: 15),
-                label: Text('Edit Task',
-                    style: GoogleFonts.inter(fontSize: 13)),
-                style: FilledButton.styleFrom(
-                  backgroundColor: kElectricIndigo,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-            ],
           ),
         ),
       ),
@@ -306,28 +330,63 @@ class _TaskDetailView extends ConsumerWidget {
   }
 }
 
-class _InfoCell extends StatelessWidget {
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
   final String label;
-  final Widget child;
-  const _InfoCell({required this.label, required this.child});
+  final String value;
+  final Color? valueColor;
+
+  const _InfoRow({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.1 * 11,
-            color: kSlateGray,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 15, color: iconColor),
           ),
-        ),
-        const SizedBox(height: 6),
-        child,
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: kSlateGray,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: valueColor ?? context.onBg,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -20,10 +20,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
 
+  DateTime _dayKey(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+
   @override
   Widget build(BuildContext context) {
-    final tasksAsync = ref.watch(tasksStreamProvider);
-    final tasks = tasksAsync.value ?? [];
+    final tasks = ref.watch(tasksStreamProvider).value ?? [];
 
     final eventMap = <DateTime, List<Task>>{};
     for (final t in tasks) {
@@ -33,147 +34,203 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       }
     }
 
-    List<Task> selectedTasks() {
-      return eventMap[_dayKey(_selectedDay)] ?? [];
-    }
+    final selectedTasks = eventMap[_dayKey(_selectedDay)] ?? [];
 
     return Scaffold(
-      backgroundColor: kBackground,
-      appBar: AppBar(
-        backgroundColor: kBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kOnBackground),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Calendar',
-          style: GoogleFonts.dmSans(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: kOnBackground,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: kHairline),
-        ),
-      ),
-      body: Column(
-        children: [
-          TableCalendar<Task>(
-            firstDay: DateTime.utc(2020, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            eventLoader: (day) => eventMap[_dayKey(day)] ?? [],
-            onDaySelected: (selected, focused) => setState(() {
-              _selectedDay = selected;
-              _focusedDay = focused;
-            }),
-            onPageChanged: (focused) => setState(() => _focusedDay = focused),
-            calendarStyle: CalendarStyle(
-              outsideDaysVisible: false,
-              defaultTextStyle: GoogleFonts.inter(
-                  fontSize: 14, color: kOnBackground),
-              weekendTextStyle: GoogleFonts.inter(
-                  fontSize: 14, color: kOnBackground),
-              selectedDecoration: const BoxDecoration(
-                color: kElectricIndigo,
-                shape: BoxShape.circle,
-              ),
-              selectedTextStyle: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600),
-              todayDecoration: BoxDecoration(
-                color: kElectricIndigo.withValues(alpha: 0.25),
-                shape: BoxShape.circle,
-              ),
-              todayTextStyle: GoogleFonts.inter(
-                  fontSize: 14, color: kPrimary, fontWeight: FontWeight.w600),
-              markerDecoration: const BoxDecoration(
-                color: kPrimary,
-                shape: BoxShape.circle,
-              ),
-              markerSize: 5,
-              markerMargin: const EdgeInsets.symmetric(horizontal: 1),
-              cellMargin: const EdgeInsets.all(4),
-            ),
-            headerStyle: HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              titleTextStyle: GoogleFonts.dmSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: kOnBackground,
-              ),
-              leftChevronIcon:
-                  const Icon(Icons.chevron_left, color: kOnBackground),
-              rightChevronIcon:
-                  const Icon(Icons.chevron_right, color: kOnBackground),
-              headerPadding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: const BoxDecoration(color: kBackground),
-            ),
-            daysOfWeekStyle: DaysOfWeekStyle(
-              weekdayStyle: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: kSlateGray),
-              weekendStyle: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: kSlateGray),
-            ),
-            calendarBuilders: CalendarBuilders(
-              defaultBuilder: (context, day, focusedDay) => _DayCell(day: day),
-              outsideBuilder: (context, day, focusedDay) =>
-                  _DayCell(day: day, muted: true),
-            ),
-          ),
-          const Divider(height: 1, color: kHairline),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-            child: Row(
-              children: [
-                Text(
-                  DateFormat('EEEE, MMM d').format(_selectedDay),
-                  style: GoogleFonts.dmSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: kOnBackground,
-                  ),
-                ),
-                const Spacer(),
-                if (selectedTasks().isNotEmpty)
-                  Text(
-                    '${selectedTasks().length} task${selectedTasks().length == 1 ? '' : 's'}',
-                    style: GoogleFonts.inter(
-                        fontSize: 13, color: kSlateGray),
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: selectedTasks().isEmpty
-                ? Center(
-                    child: Text(
-                      'No tasks for this day',
+      backgroundColor: context.bg,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 28),
+                    RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.dmSans(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.04 * 40,
+                          color: context.onBg,
+                          height: 1.2,
+                        ),
+                        children: [
+                          const TextSpan(text: 'Your '),
+                          TextSpan(
+                            text: 'Calendar',
+                            style: GoogleFonts.playfairDisplay(
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w600,
+                              color: context.accentText,
+                              fontSize: 40,
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      DateFormat('MMMM yyyy').format(_focusedDay),
                       style: GoogleFonts.inter(
                           fontSize: 14, color: kSlateGray),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    itemCount: selectedTasks().length,
-                    itemBuilder: (context, i) => TaskListItem(
-                      key: ValueKey(selectedTasks()[i].id),
-                      task: selectedTasks()[i],
-                      index: i,
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: TableCalendar<Task>(
+                  firstDay: DateTime.utc(2020, 1, 1),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay,
+                  selectedDayPredicate: (day) =>
+                      isSameDay(_selectedDay, day),
+                  eventLoader: (day) => eventMap[_dayKey(day)] ?? [],
+                  onDaySelected: (selected, focused) => setState(() {
+                    _selectedDay = selected;
+                    _focusedDay = focused;
+                  }),
+                  onPageChanged: (focused) =>
+                      setState(() => _focusedDay = focused),
+                  calendarStyle: CalendarStyle(
+                    outsideDaysVisible: false,
+                    defaultTextStyle: GoogleFonts.inter(
+                        fontSize: 14, color: context.onBg),
+                    weekendTextStyle: GoogleFonts.inter(
+                        fontSize: 14, color: context.onBg),
+                    selectedDecoration: const BoxDecoration(
+                      color: kElectricIndigo,
+                      shape: BoxShape.circle,
                     ),
+                    selectedTextStyle: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600),
+                    todayDecoration: BoxDecoration(
+                      color: kElectricIndigo.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    todayTextStyle: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: kElectricIndigo,
+                        fontWeight: FontWeight.w600),
+                    markerDecoration: const BoxDecoration(
+                      color: kElectricIndigo,
+                      shape: BoxShape.circle,
+                    ),
+                    markerSize: 5,
+                    markerMargin: const EdgeInsets.symmetric(horizontal: 1),
+                    cellMargin: const EdgeInsets.all(4),
+                    outsideTextStyle: GoogleFonts.inter(
+                        fontSize: 14, color: context.outline),
                   ),
-          ),
-        ],
+                  headerStyle: HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    titleTextStyle: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: context.onBg,
+                    ),
+                    leftChevronIcon:
+                        Icon(Icons.chevron_left, color: context.onBg),
+                    rightChevronIcon:
+                        Icon(Icons.chevron_right, color: context.onBg),
+                    headerPadding:
+                        const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(color: Colors.transparent),
+                    headerMargin: EdgeInsets.zero,
+                  ),
+                  daysOfWeekStyle: DaysOfWeekStyle(
+                    weekdayStyle: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: kSlateGray),
+                    weekendStyle: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: kSlateGray),
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 3,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: kElectricIndigo,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      DateFormat('EEEE, MMMM d').format(_selectedDay),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: context.onBg,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (selectedTasks.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: kElectricIndigo.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${selectedTasks.length}',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: kElectricIndigo,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (selectedTasks.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(
+                    'Nothing scheduled',
+                    style:
+                        GoogleFonts.inter(fontSize: 14, color: kSlateGray),
+                  ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) => TaskListItem(
+                    key: ValueKey(selectedTasks[i].id),
+                    task: selectedTasks[i],
+                    index: i,
+                    isDraggable: false,
+                  ),
+                  childCount: selectedTasks.length,
+                ),
+              ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+          ],
+        ),
       ),
       floatingActionButton: SizedBox(
         width: 56,
@@ -190,27 +247,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           elevation: 0,
           child: const Icon(Icons.add, size: 32),
-        ),
-      ),
-    );
-  }
-
-  DateTime _dayKey(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
-}
-
-class _DayCell extends StatelessWidget {
-  final DateTime day;
-  final bool muted;
-  const _DayCell({required this.day, this.muted = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        '${day.day}',
-        style: GoogleFonts.inter(
-          fontSize: 14,
-          color: muted ? kOutlineVariant : kOnBackground,
         ),
       ),
     );
