@@ -4,7 +4,7 @@ import '../../data/repositories/task_repository_impl.dart';
 import '../../domain/entities/task.dart';
 import '../../domain/repositories/task_repository.dart';
 
-enum TaskView { today, upcoming, all, active, done }
+enum TaskView { today, upcoming, all }
 
 final taskLocalDatasourceProvider = Provider<TaskLocalDatasource>((ref) {
   final datasource = TaskLocalDatasource();
@@ -22,21 +22,14 @@ final tasksStreamProvider = StreamProvider<List<Task>>((ref) {
 
 final taskViewProvider = StateProvider<TaskView>((ref) => TaskView.today);
 
-final selectedCategoryProvider = StateProvider<String?>((ref) => null);
+final selectedLabelProvider = StateProvider<String?>((ref) => null);
 
-final availableCategoriesProvider = Provider<List<String>>((ref) {
-  final tasks = ref.watch(tasksStreamProvider).value ?? [];
-  return tasks
-      .where((t) => t.category != null && !t.isDeleted)
-      .map((t) => t.category!)
-      .toSet()
-      .toList()
-    ..sort();
-});
+// Keep old name as alias so existing references compile
+final selectedCategoryProvider = selectedLabelProvider;
 
 final unifiedFilteredProvider = Provider<AsyncValue<List<Task>>>((ref) {
   final view = ref.watch(taskViewProvider);
-  final selectedCategory = ref.watch(selectedCategoryProvider);
+  final selectedLabel = ref.watch(selectedLabelProvider);
   final tasksAsync = ref.watch(tasksStreamProvider);
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
@@ -46,30 +39,29 @@ final unifiedFilteredProvider = Provider<AsyncValue<List<Task>>>((ref) {
       TaskView.today => tasks
           .where((t) => !t.isDeleted && !t.isCompleted && t.dueDate != null)
           .where((t) {
-            final due =
-                DateTime(t.dueDate!.year, t.dueDate!.month, t.dueDate!.day);
+            final due = DateTime(
+                t.dueDate!.year, t.dueDate!.month, t.dueDate!.day);
             return !due.isAfter(today);
           })
           .toList(),
       TaskView.upcoming => tasks
           .where((t) => !t.isDeleted && !t.isCompleted && t.dueDate != null)
           .where((t) {
-            final due =
-                DateTime(t.dueDate!.year, t.dueDate!.month, t.dueDate!.day);
+            final due = DateTime(
+                t.dueDate!.year, t.dueDate!.month, t.dueDate!.day);
             return due.isAfter(today);
           })
           .toList()
         ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!)),
-      TaskView.all => tasks.where((t) => !t.isDeleted).toList(),
-      TaskView.active =>
-        tasks.where((t) => !t.isDeleted && !t.isCompleted).toList(),
-      TaskView.done =>
-        tasks.where((t) => !t.isDeleted && t.isCompleted).toList(),
+      // All: active tasks first, then completed (both non-deleted)
+      TaskView.all => [
+          ...tasks.where((t) => !t.isDeleted && !t.isCompleted),
+          ...tasks.where((t) => !t.isDeleted && t.isCompleted),
+        ],
     };
 
-    // Category filter applies to all views except upcoming (chips are hidden there)
-    if (selectedCategory != null && view != TaskView.upcoming) {
-      result = result.where((t) => t.category == selectedCategory).toList();
+    if (selectedLabel != null && view != TaskView.upcoming) {
+      result = result.where((t) => t.category == selectedLabel).toList();
     }
 
     return result;

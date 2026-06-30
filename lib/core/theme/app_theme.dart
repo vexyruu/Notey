@@ -7,6 +7,8 @@ class AppTheme {
       primary: Color(0xFF6366F1),
       secondary: Color(0xFFC0C1FF),
       surface: Color(0xFF13131B),
+      surfaceContainerLowest: Color(0xFF0D0D15),
+      surfaceContainerLow: Color(0xFF1B1B23),
       surfaceContainer: Color(0xFF1F1F27),
       surfaceContainerHigh: Color(0xFF292932),
       onSurface: Color(0xFFE4E1ED),

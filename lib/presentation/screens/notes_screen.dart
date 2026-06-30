@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../domain/entities/note.dart';
 import '../viewmodels/note_providers.dart';
+import '../widgets/app_dialog.dart';
 import 'note_editor_screen.dart';
 
 class NotesScreen extends ConsumerStatefulWidget {
@@ -206,7 +207,7 @@ class _SearchBar extends ConsumerWidget {
   }
 }
 
-class _NoteCard extends StatelessWidget {
+class _NoteCard extends ConsumerWidget {
   final Note note;
   const _NoteCard({required this.note});
 
@@ -221,73 +222,106 @@ class _NoteCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final hasTitle = note.title.isNotEmpty;
     final hasContent = note.content.isNotEmpty;
     final displayTitle = hasTitle
         ? note.title
         : (hasContent ? note.content.split('\n').first : 'Empty note');
 
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
-      ),
-      child: Container(
+    // Material+Ink+InkWell gives built-in ripple feedback on both tap and
+    // long-press without extra state management.
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: Ink(
         decoration: BoxDecoration(
           color: context.surfaceContainer,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: context.subtleBorder),
         ),
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              displayTitle,
-              style: GoogleFonts.dmSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: context.onBg,
-                height: 1.3,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 6),
-            Expanded(
-              child: hasContent && hasTitle
-                  ? Text(
-                      note.content,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: kSlateGray,
-                        height: 1.55,
-                      ),
-                      maxLines: 4,
-                      overflow: TextOverflow.fade,
-                      softWrap: true,
-                    )
-                  : const SizedBox(),
-            ),
-            const SizedBox(height: 8),
-            Row(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          splashColor: context.errorColor.withValues(alpha: 0.06),
+          highlightColor: context.errorColor.withValues(alpha: 0.09),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
+          ),
+          onLongPress: () async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (_) => _DeleteNoteDialog(title: displayTitle),
+            );
+            if (confirmed == true && context.mounted) {
+              ref.read(noteViewModelProvider.notifier).deleteNote(note.id);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.access_time_rounded,
-                    size: 10, color: context.outline),
-                const SizedBox(width: 4),
                 Text(
-                  _relativeDate(note.updatedAt),
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    color: context.outline,
-                    fontWeight: FontWeight.w500,
+                  displayTitle,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: context.onBg,
+                    height: 1.3,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: hasContent && hasTitle
+                      ? Text(
+                          note.content,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: kSlateGray,
+                            height: 1.55,
+                          ),
+                          maxLines: 4,
+                          overflow: TextOverflow.fade,
+                          softWrap: true,
+                        )
+                      : const SizedBox(),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.access_time_rounded,
+                        size: 10, color: context.outline),
+                    const SizedBox(width: 4),
+                    Text(
+                      _relativeDate(note.updatedAt),
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        color: context.outline,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _DeleteNoteDialog extends StatelessWidget {
+  final String title;
+  const _DeleteNoteDialog({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppDeleteDialog(
+      entityType: 'Note?',
+      description: '"$title"',
     );
   }
 }

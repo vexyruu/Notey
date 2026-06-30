@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
-import 'presentation/widgets/main_shell.dart';
+import 'presentation/screens/splash_screen.dart';
 
 const kElectricIndigo = Color(0xFF6366F1);
 const kPrimary = Color(0xFFC0C1FF);
@@ -17,6 +17,7 @@ extension AppColors on BuildContext {
   Color get bg => Theme.of(this).scaffoldBackgroundColor;
   Color get onBg => Theme.of(this).colorScheme.onSurface;
   Color get surface => Theme.of(this).colorScheme.surface;
+  Color get surfaceContainerLow => Theme.of(this).colorScheme.surfaceContainerLow;
   Color get surfaceContainer => Theme.of(this).colorScheme.surfaceContainer;
   Color get surfaceContainerHigh => Theme.of(this).colorScheme.surfaceContainerHigh;
   Color get hairline => Theme.of(this).dividerColor;
@@ -39,7 +40,7 @@ class NoteyApp extends ConsumerWidget {
       themeMode: themeMode,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      home: const MainShell(),
+      home: const SplashScreen(),
     );
   }
 }

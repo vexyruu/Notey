@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../app.dart';
+import '../../domain/entities/label.dart';
 import '../../domain/entities/task.dart';
+import '../viewmodels/label_providers.dart';
 import '../viewmodels/providers.dart';
 import '../viewmodels/task_viewmodel.dart';
 import '../widgets/empty_state_widget.dart';
@@ -27,31 +29,33 @@ class TaskListScreen extends ConsumerWidget {
           loading: () => const Center(
               child: CircularProgressIndicator(color: kElectricIndigo)),
           error: (e, _) => Center(
-              child: Text('Error: $e', style: TextStyle(color: kSlateGray))),
+              child: Text('Error: $e',
+                  style: TextStyle(color: kSlateGray))),
           data: (tasks) {
-            final categories = ref.watch(availableCategoriesProvider);
-            final selectedCategory = ref.watch(selectedCategoryProvider);
+            final labels = ref.watch(labelsProvider);
+            final selectedLabel = ref.watch(selectedLabelProvider);
 
+            // Hero heading
             final (italicWord, suffix) = switch (view) {
               TaskView.today => ('Focus', ' Today'),
               TaskView.upcoming => ('Upcoming', ''),
-              _ => ('Tasks', ''),
+              TaskView.all => ('Tasks', ''),
             };
 
+            // Subtitle
             final subtitle = switch (view) {
               TaskView.today =>
                 '${tasks.length} task${tasks.length == 1 ? '' : 's'} due',
               TaskView.upcoming =>
                 '${tasks.length} task${tasks.length == 1 ? '' : 's'} scheduled',
-              TaskView.all =>
-                '${tasks.length} task${tasks.length == 1 ? '' : 's'} total',
-              TaskView.active =>
-                '${tasks.length} active',
-              TaskView.done =>
-                '${tasks.length} completed',
+              TaskView.all => () {
+                  final active = tasks.where((t) => !t.isCompleted).length;
+                  final done = tasks.where((t) => t.isCompleted).length;
+                  return '$active active · $done done';
+                }(),
             };
 
-            // Build flat list for upcoming (date-group headers interleaved)
+            // Flat list for upcoming grouped by date
             final List<dynamic> upcomingFlat = [];
             if (view == TaskView.upcoming && tasks.isNotEmpty) {
               final grouped = <DateTime, List<Task>>{};
@@ -69,6 +73,7 @@ class TaskListScreen extends ConsumerWidget {
 
             return CustomScrollView(
               slivers: [
+                // ── Header ──────────────────────────────────────────
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
@@ -96,7 +101,8 @@ class TaskListScreen extends ConsumerWidget {
                                   height: 1.2,
                                 ),
                               ),
-                              if (suffix.isNotEmpty) TextSpan(text: suffix),
+                              if (suffix.isNotEmpty)
+                                TextSpan(text: suffix),
                             ],
                           ),
                         ),
@@ -107,23 +113,29 @@ class TaskListScreen extends ConsumerWidget {
                               fontSize: 14, color: kSlateGray),
                         ),
                         const SizedBox(height: 28),
+
+                        // ── Filter tabs ────────────────────────────
                         const FilterTabBar(),
+
+                        // ── Label filter chips (not in upcoming) ───
                         if (view != TaskView.upcoming &&
-                            categories.isNotEmpty) ...[
+                            labels.isNotEmpty) ...[
                           const SizedBox(height: 14),
-                          _CategoryRow(
-                            categories: categories,
-                            selectedCategory: selectedCategory,
-                            onSelect: (c) => ref
-                                .read(selectedCategoryProvider.notifier)
-                                .state = c,
+                          _LabelFilterRow(
+                            labels: labels,
+                            selectedLabel: selectedLabel,
+                            onSelect: (name) => ref
+                                .read(selectedLabelProvider.notifier)
+                                .state = name,
                           ),
                         ],
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                       ],
                     ),
                   ),
                 ),
+
+                // ── Task list ────────────────────────────────────────
                 if (tasks.isEmpty)
                   const SliverFillRemaining(
                     hasScrollBody: false,
@@ -138,10 +150,9 @@ class TaskListScreen extends ConsumerWidget {
                           return _DateGroupHeader(
                               label: _groupLabel(item));
                         }
-                        final task = item as Task;
                         return TaskListItem(
-                          key: ValueKey(task.id),
-                          task: task,
+                          key: ValueKey((item as Task).id),
+                          task: item,
                           index: i,
                           isDraggable: false,
                         );
@@ -175,7 +186,8 @@ class TaskListScreen extends ConsumerWidget {
                       childCount: tasks.length,
                     ),
                   ),
-                const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+
+                const SliverPadding(padding: EdgeInsets.only(bottom: 96)),
               ],
             );
           },
@@ -190,8 +202,8 @@ class TaskListScreen extends ConsumerWidget {
           ),
           backgroundColor: kElectricIndigo,
           foregroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4)),
           elevation: 0,
           child: const Icon(Icons.add, size: 32),
         ),
@@ -210,13 +222,16 @@ class TaskListScreen extends ConsumerWidget {
   }
 }
 
-class _CategoryRow extends StatelessWidget {
-  final List<String> categories;
-  final String? selectedCategory;
+// ── Label filter row ───────────────────────────────────────────────────────
+
+class _LabelFilterRow extends StatelessWidget {
+  final List<Label> labels;
+  final String? selectedLabel;
   final ValueChanged<String?> onSelect;
-  const _CategoryRow({
-    required this.categories,
-    required this.selectedCategory,
+
+  const _LabelFilterRow({
+    required this.labels,
+    required this.selectedLabel,
     required this.onSelect,
   });
 
@@ -226,28 +241,40 @@ class _CategoryRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _Chip(
+          _LabelChip(
             label: 'All',
-            isSelected: selectedCategory == null,
+            color: kElectricIndigo,
+            isSelected: selectedLabel == null,
             onTap: () => onSelect(null),
           ),
-          ...categories.map((c) => _Chip(
-                label: c,
-                isSelected: selectedCategory == c,
-                onTap: () => onSelect(selectedCategory == c ? null : c),
-              )),
+          ...labels.map((l) {
+            final color = Color(l.colorValue);
+            return _LabelChip(
+              label: l.name,
+              color: color,
+              isSelected: selectedLabel == l.name,
+              onTap: () =>
+                  onSelect(selectedLabel == l.name ? null : l.name),
+            );
+          }),
         ],
       ),
     );
   }
 }
 
-class _Chip extends StatelessWidget {
+class _LabelChip extends StatelessWidget {
   final String label;
+  final Color color;
   final bool isSelected;
   final VoidCallback onTap;
-  const _Chip(
-      {required this.label, required this.isSelected, required this.onTap});
+
+  const _LabelChip({
+    required this.label,
+    required this.color,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -256,23 +283,38 @@ class _Chip extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: isSelected
-              ? kElectricIndigo.withValues(alpha: 0.15)
-              : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.12) : Colors.transparent,
           border: Border.all(
-            color: isSelected ? kElectricIndigo : context.outline,
+            color: isSelected
+                ? color.withValues(alpha: 0.5)
+                : context.outline.withValues(alpha: 0.5),
           ),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(6),
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: isSelected ? kElectricIndigo : kSlateGray,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isSelected ? color : kSlateGray,
+              ),
+            ),
+          ],
         ),
       ),
     );

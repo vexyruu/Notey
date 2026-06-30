@@ -24,11 +24,6 @@ class EmptyStateWidget extends ConsumerWidget {
           Icons.check_circle_outline,
           'No tasks yet.\nTap + to add one.'
         ),
-      TaskView.active => (Icons.inbox_outlined, 'No active tasks.'),
-      TaskView.done => (
-          Icons.emoji_events_outlined,
-          'No completed tasks yet.'
-        ),
     };
 
     return Center(

@@ -4,12 +4,15 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../domain/entities/label.dart';
 import '../../../domain/entities/task.dart';
+import '../../models/label_model.dart';
 import '../../models/task_model.dart';
 
 class TaskLocalDatasource {
   static Database? _db;
-  final _controller = StreamController<List<Task>>.broadcast();
+  final _taskController = StreamController<List<Task>>.broadcast();
+  final _labelController = StreamController<List<Label>>.broadcast();
 
   Future<Database> get database async {
     _db ??= await _initDatabase();
@@ -52,6 +55,7 @@ class TaskLocalDatasource {
     await db.execute(
         'CREATE INDEX idx_tasks_due ON ${AppConstants.tasksTable}(dueDate)');
     await _createNotesTable(db);
+    await _createLabelsTable(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -62,6 +66,9 @@ class TaskLocalDatasource {
     }
     if (oldVersion < 3) {
       await _createNotesTable(db);
+    }
+    if (oldVersion < 4) {
+      await _createLabelsTable(db);
     }
   }
 
@@ -78,7 +85,20 @@ class TaskLocalDatasource {
     ''');
   }
 
-  Future<void> _notifyListeners() async {
+  Future<void> _createLabelsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${AppConstants.labelsTable} (
+        id         TEXT PRIMARY KEY,
+        name       TEXT NOT NULL UNIQUE,
+        colorValue INTEGER NOT NULL,
+        createdAt  INTEGER NOT NULL
+      )
+    ''');
+  }
+
+  // ── Tasks ──────────────────────────────────────────────────
+
+  Future<void> _notifyTaskListeners() async {
     final db = await database;
     final maps = await db.query(
       AppConstants.tasksTable,
@@ -86,12 +106,12 @@ class TaskLocalDatasource {
       whereArgs: [0],
       orderBy: 'sortOrder ASC, createdAt DESC',
     );
-    _controller.add(maps.map(TaskModel.fromMap).toList());
+    _taskController.add(maps.map(TaskModel.fromMap).toList());
   }
 
   Stream<List<Task>> watchAll() {
-    _notifyListeners();
-    return _controller.stream;
+    _notifyTaskListeners();
+    return _taskController.stream;
   }
 
   Future<List<Task>> getAll() async {
@@ -134,7 +154,7 @@ class TaskLocalDatasource {
       TaskModel.fromTask(task).toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    await _notifyListeners();
+    await _notifyTaskListeners();
   }
 
   Future<void> update(Task task) async {
@@ -145,7 +165,7 @@ class TaskLocalDatasource {
       where: 'id = ?',
       whereArgs: [task.id],
     );
-    await _notifyListeners();
+    await _notifyTaskListeners();
   }
 
   Future<void> softDelete(String id) async {
@@ -160,7 +180,7 @@ class TaskLocalDatasource {
       where: 'id = ?',
       whereArgs: [id],
     );
-    await _notifyListeners();
+    await _notifyTaskListeners();
   }
 
   Future<void> hardDelete(String id) async {
@@ -170,10 +190,58 @@ class TaskLocalDatasource {
       where: 'id = ?',
       whereArgs: [id],
     );
-    await _notifyListeners();
+    await _notifyTaskListeners();
+  }
+
+  // ── Labels ─────────────────────────────────────────────────
+
+  Future<void> _notifyLabelListeners() async {
+    final db = await database;
+    final maps = await db.query(
+      AppConstants.labelsTable,
+      orderBy: 'createdAt ASC',
+    );
+    _labelController.add(maps.map(LabelModel.fromMap).toList());
+  }
+
+  Stream<List<Label>> watchAllLabels() {
+    _notifyLabelListeners();
+    return _labelController.stream;
+  }
+
+  Future<void> insertLabel(Label label) async {
+    final db = await database;
+    await db.insert(
+      AppConstants.labelsTable,
+      LabelModel.fromLabel(label).toMap(),
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+    await _notifyLabelListeners();
+  }
+
+  Future<void> updateLabel(Label label) async {
+    final db = await database;
+    await db.update(
+      AppConstants.labelsTable,
+      LabelModel.fromLabel(label).toMap(),
+      where: 'id = ?',
+      whereArgs: [label.id],
+    );
+    await _notifyLabelListeners();
+  }
+
+  Future<void> deleteLabel(String id) async {
+    final db = await database;
+    await db.delete(
+      AppConstants.labelsTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    await _notifyLabelListeners();
   }
 
   void dispose() {
-    _controller.close();
+    _taskController.close();
+    _labelController.close();
   }
 }

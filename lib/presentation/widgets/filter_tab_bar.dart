@@ -15,54 +15,51 @@ class FilterTabBar extends ConsumerWidget {
       (TaskView.today, 'Today'),
       (TaskView.upcoming, 'Upcoming'),
       (TaskView.all, 'All'),
-      (TaskView.active, 'Active'),
-      (TaskView.done, 'Done'),
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: tabs.map((entry) {
-          final (view, label) = entry;
-          final isSelected = current == view;
-          return Padding(
-            padding: const EdgeInsets.only(right: 24),
-            child: GestureDetector(
-              onTap: () {
-                ref.read(taskViewProvider.notifier).state = view;
-                // Clear category selection when switching to upcoming
-                if (view == TaskView.upcoming) {
-                  ref.read(selectedCategoryProvider.notifier).state = null;
-                }
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 14,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color: isSelected ? context.onBg : kSlateGray,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: isSelected ? 4 : 0,
-                    height: isSelected ? 4 : 0,
-                    decoration: const BoxDecoration(
-                      color: kElectricIndigo,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
+    return Row(
+      children: tabs.map((entry) {
+        final (view, label) = entry;
+        final isSelected = current == view;
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: GestureDetector(
+            onTap: () {
+              ref.read(taskViewProvider.notifier).state = view;
+              if (view == TaskView.upcoming) {
+                ref.read(selectedCategoryProvider.notifier).state = null;
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeInOut,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? kElectricIndigo.withValues(alpha: 0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isSelected
+                      ? kElectricIndigo.withValues(alpha: 0.35)
+                      : context.outline.withValues(alpha: 0.5),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                label,
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  fontWeight:
+                      isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? kElectricIndigo : kSlateGray,
+                ),
               ),
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

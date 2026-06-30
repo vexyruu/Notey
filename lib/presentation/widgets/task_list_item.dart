@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../domain/entities/task.dart';
+import '../viewmodels/label_providers.dart';
 import '../viewmodels/task_viewmodel.dart';
 import '../screens/task_detail_screen.dart';
 
@@ -47,7 +48,7 @@ class TaskListItem extends ConsumerWidget {
                 builder: (_) => TaskDetailScreen(taskId: task.id)),
           ),
           child: Opacity(
-            opacity: task.isCompleted ? 0.5 : 1.0,
+            opacity: task.isCompleted ? 0.45 : 1.0,
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
@@ -62,7 +63,7 @@ class TaskListItem extends ConsumerWidget {
                     child: _SquareCheckbox(
                       value: task.isCompleted,
                       onChanged: (_) => vm.toggleComplete(task),
-                      context: context,
+                      outerContext: context,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -81,7 +82,8 @@ class TaskListItem extends ConsumerWidget {
                             decoration: task.isCompleted
                                 ? TextDecoration.lineThrough
                                 : null,
-                            decorationColor: context.onBg.withValues(alpha: 0.4),
+                            decorationColor:
+                                context.onBg.withValues(alpha: 0.4),
                           ),
                         ),
                         const SizedBox(height: 5),
@@ -105,7 +107,7 @@ class TaskListItem extends ConsumerWidget {
   }
 }
 
-class _MetaRow extends StatelessWidget {
+class _MetaRow extends ConsumerWidget {
   final Task task;
   const _MetaRow({required this.task});
 
@@ -122,21 +124,17 @@ class _MetaRow extends StatelessWidget {
       };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final labels = ref.watch(labelsProvider);
     final segments = <Widget>[];
 
+    // Priority: flag icon + text
     segments.add(Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: _priorityColor(task.priority),
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 4),
+        Icon(Icons.flag_rounded,
+            size: 11, color: _priorityColor(task.priority)),
+        const SizedBox(width: 3),
         Text(
           _priorityLabel(task.priority),
           style: GoogleFonts.inter(
@@ -149,20 +147,45 @@ class _MetaRow extends StatelessWidget {
     ));
 
     if (task.category != null) {
-      segments.add(_dot(context));
-      segments.add(Text(
-        task.category!.toUpperCase(),
-        style: GoogleFonts.inter(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.08 * 11,
-          color: kSlateGray,
+      final match =
+          labels.where((l) => l.name == task.category).firstOrNull;
+      final labelColor =
+          match != null ? Color(match.colorValue) : kSlateGray;
+
+      segments.add(_dot());
+      // Label: pill badge with tinted background
+      segments.add(Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+        decoration: BoxDecoration(
+          color: labelColor.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 5,
+              height: 5,
+              decoration:
+                  BoxDecoration(color: labelColor, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 3),
+            Text(
+              task.category!,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: labelColor,
+              ),
+            ),
+          ],
         ),
       ));
     }
 
     if (task.dueDate != null) {
-      segments.add(_dot(context));
+      segments.add(_dot());
       segments.add(_DateChip(task: task));
     }
 
@@ -174,7 +197,7 @@ class _MetaRow extends StatelessWidget {
     );
   }
 
-  Widget _dot(BuildContext context) => Text(
+  Widget _dot() => Text(
         '·',
         style: TextStyle(color: kSlateGray, fontSize: 11),
       );
@@ -219,38 +242,63 @@ class _DateChip extends StatelessWidget {
   }
 }
 
-class _SquareCheckbox extends StatelessWidget {
+// StatefulWidget so we can show an optimistic checked state immediately on
+// tap, before the async database write + stream roundtrip completes.
+class _SquareCheckbox extends StatefulWidget {
   final bool value;
   final ValueChanged<bool?> onChanged;
-  final BuildContext context;
+  final BuildContext outerContext;
 
   const _SquareCheckbox({
     required this.value,
     required this.onChanged,
-    required this.context,
+    required this.outerContext,
   });
 
   @override
+  State<_SquareCheckbox> createState() => _SquareCheckboxState();
+}
+
+class _SquareCheckboxState extends State<_SquareCheckbox> {
+  bool? _optimistic; // null = no pending update; show widget.value
+
+  @override
+  void didUpdateWidget(_SquareCheckbox old) {
+    super.didUpdateWidget(old);
+    // Stream confirmed the new value — clear the optimistic override.
+    if (old.value != widget.value) {
+      _optimistic = null;
+    }
+  }
+
+  void _handleTap() {
+    final next = !(_optimistic ?? widget.value);
+    setState(() => _optimistic = next);
+    widget.onChanged(next);
+  }
+
+  @override
   Widget build(BuildContext _) {
-    final fillColor = context.accentText;
+    final displayValue = _optimistic ?? widget.value;
+    final fillColor = widget.outerContext.accentText;
     return GestureDetector(
-      onTap: () => onChanged(!value),
+      onTap: _handleTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 120),
         width: 20,
         height: 20,
         decoration: BoxDecoration(
-          color: value ? fillColor : Colors.transparent,
+          color: displayValue ? fillColor : Colors.transparent,
           border: Border.all(
-            color: value ? fillColor : context.outline,
+            color: displayValue ? fillColor : widget.outerContext.outline,
             width: 1,
           ),
         ),
-        child: value
+        child: displayValue
             ? Icon(
                 Icons.check,
                 size: 13,
-                color: context.isDark
+                color: widget.outerContext.isDark
                     ? const Color(0xFF07006C)
                     : Colors.white,
               )
