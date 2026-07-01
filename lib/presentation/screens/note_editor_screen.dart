@@ -18,6 +18,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _contentCtrl;
   bool _isDirty = false;
+  bool _isPopping = false;
 
   bool get _isEdit => widget.note != null;
 
@@ -64,11 +65,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   Future<void> _saveAndPop() async {
+    if (_isPopping) return;
+    _isPopping = true;
     await _save();
     if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _deleteAndPop() async {
+    if (_isPopping) return;
+    _isPopping = true;
     if (_isEdit) {
       await ref.read(noteViewModelProvider.notifier).deleteNote(widget.note!.id);
     }
@@ -122,7 +127,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       ],
                     ),
                   );
-                  if (confirmed == true) _deleteAndPop();
+                  if (confirmed == true) await _deleteAndPop();
                 },
               ),
           ],

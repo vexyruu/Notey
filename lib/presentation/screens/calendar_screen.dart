@@ -236,6 +236,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         width: 56,
         height: 56,
         child: FloatingActionButton(
+          heroTag: null,
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => TaskFormScreen(initialDate: _selectedDay),

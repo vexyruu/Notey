@@ -429,6 +429,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         onPressed: _submit,
         backgroundColor: kElectricIndigo,
         foregroundColor: Colors.white,

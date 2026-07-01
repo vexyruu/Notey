@@ -197,6 +197,7 @@ class TaskListScreen extends ConsumerWidget {
         width: 56,
         height: 56,
         child: FloatingActionButton(
+          heroTag: null,
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const TaskFormScreen()),
           ),

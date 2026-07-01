@@ -108,7 +108,8 @@ class _TaskDetailView extends ConsumerWidget {
               );
               if (confirmed == true) {
                 await vm.deleteTask(task.id);
-                if (context.mounted) Navigator.of(context).pop();
+                // No explicit pop — taskByIdProvider returns null once the task
+                // is removed from the stream, triggering the auto-pop below.
               }
             },
           ),
